@@ -20,7 +20,7 @@
 
 **설치**
 ```bash
-git clone git@github.com:SesameAILabs/csm.git
+git clone https://github.com/Joinerlee/csm.git
 cd csm
 python3.10 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
@@ -109,3 +109,7 @@ def convert_text_to_speech(text, speaker=0):
 2. 처리 시간은 텍스트 길이와 GPU 성능에 따라 달라질 수 있습니다.
 3. 긴 텍스트의 경우 요청 타임아웃을 적절히 설정하세요.
 4. 네트워크 지연 시간을 고려하여 백엔드에서 적절한 타임아웃 값을 설정하세요. 
+
+# 기존 서버 종료 후 재시작
+cd ~/csm
+python app.py 
