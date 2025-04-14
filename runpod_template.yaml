@@ -1,0 +1,16 @@
+# runpod_template.yaml
+name: CSM TTS System
+image: python:3.10
+workspace:
+  setup:
+    - pip install -r requirements.txt
+    - pip install gTTS pydub fastapi uvicorn transformers torch torchaudio numpy python-multipart requests
+    - apt-get update && apt-get install -y ffmpeg
+  env:
+    - NO_TORCH_COMPILE=1
+  volumes:
+    - name: models
+      path: /models
+      mode: readwrite
+
+handler: handler.py:handler 
