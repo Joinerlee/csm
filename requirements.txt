@@ -11,4 +11,5 @@ huggingface_hub>=0.15.1
 gtts>=2.3.2
 pydub>=0.25.1
 # CSM 내부 의존성
-torchtune==0.4.0 # CSM 저장소에서 요구하는 버전으로 고정 
+torchtune==0.4.0 # CSM 저장소에서 요구하는 버전으로 고정
+moshi==0.2.2 # generator.py 에서 필요 
