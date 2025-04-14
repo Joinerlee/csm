@@ -68,23 +68,17 @@ VOICE_CLONE_FILES = [
     "excited_first_date.wav",
     "disappointed_movie_night.wav", 
     "confused_firstday_work.wav",
-    "emotional_parents_support.wav",
-    "dilemma_vacation_choice.wav",
-    "embarrassed_presentation.wav",
-    "angry_lazy_teammate.wav"
+    "emotional_parents_support.wav"
 ]
 
 # Dictionary to store transcript texts for each wav file
 # These should be replaced with accurate transcripts for each audio file
 VOICE_TRANSCRIPTS = {
     "awkward_failed_joke.wav": "I was trying to make a joke, but it totally backfired. Everyone just went quiet, and I wanted to disappear. I smiled awkwardly and changed the subject as fast as I could.",
-    "excited_first_date.wav": "The night before our first date, I couldn't stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
+    "excited_first_date.wav": "The night before our first date, I couldn’t stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
     "disappointed_movie_night.wav": "I had been waiting months to watch this movie, and it ended up being such a letdown. The plot made no sense, and the characters were flat. I walked out of the theater feeling so disappointed.",
-    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn't remember anyone's name. I was smiling, but deep down I was totally confused and anxious.",
-    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could've received.",
-    "dilemma_vacation_choice.wav": "I can't decide if I should go to the mountains or the beach for vacation. They both sound so appealing for different reasons.",
-    "embarrassed_presentation.wav": "In the middle of my presentation to the whole company, I completely blanked out. I couldn't remember any of my talking points.",
-    "angry_lazy_teammate.wav": "I've been doing all the work on this group project while my teammate hasn't contributed anything. It's really frustrating."
+    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn’t remember anyone’s name. I was smiling, but deep down I was totally confused and anxious.",
+    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could’ve received."
 }
 
 # Default fallback prompt if local files not available
