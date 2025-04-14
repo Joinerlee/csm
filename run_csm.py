@@ -63,23 +63,48 @@ torch.manual_seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 
 # Define list of available wav files for voice cloning
+# Define list of available wav files for voice cloning
 VOICE_CLONE_FILES = [
-    "awkward_failed_joke.wav",
-    "excited_first_date.wav",
-    "disappointed_movie_night.wav", 
+    "joy_concert_gift.wav",
+    "sad_trip_cancel.wav",
+    "angry_lazy_teammate.wav",
+    "nervous_interview_eve.wav",
+    "touched_by_friend.wav",
+    "embarrassed_presentation.wav",
+    "dilemma_vacation_choice.wav",
+    "emotional_parents_support.wav",
+    "surprised_friend_visit.wav",
+    "relieved_after_exam.wav",
+    "proud_first_dinner.wav",
     "confused_firstday_work.wav",
-    "emotional_parents_support.wav"
+    "tired_after_overtime.wav",
+    "tearful_reunion_friend.wav",
+    "disappointed_movie_night.wav",
+    "excited_first_date.wav",
+    "awkward_failed_joke.wav"
 ]
 
 # Dictionary to store transcript texts for each wav file
-# These should be replaced with accurate transcripts for each audio file
 VOICE_TRANSCRIPTS = {
-    "awkward_failed_joke.wav": "I was trying to make a joke, but it totally backfired. Everyone just went quiet, and I wanted to disappear. I smiled awkwardly and changed the subject as fast as I could.",
-    "excited_first_date.wav": "The night before our first date, I couldn't stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
+    "joy_concert_gift.wav": "When my friend told me she got us tickets to the concert, I literally screamed. I had wanted to go for so long, and I never expected her to surprise me like that. It was honestly one of the best moments of my year.",
+    "sad_trip_cancel.wav": "I was all packed and ready to go when I got the message that our trip was canceled. I just sat there staring at my suitcase—it felt so unreal. I had been looking forward to it for weeks, and I was completely crushed.",
+    "angry_lazy_teammate.wav": "One of my teammates literally did nothing the entire project. I ended up doing all the work by myself, and it was incredibly frustrating. I wanted to call them out, but I tried to stay calm and just got it done.",
+    "nervous_interview_eve.wav": "The night before my job interview, I couldn't sleep at all. I kept going over my answers in my head, worrying I’d mess something up. When I finally walked into the room, my heart was pounding like crazy.",
+    "touched_by_friend.wav": "I was going through a really tough time, and one of my friends stayed by my side the whole way. She didn’t try to fix things—she just listened and made me feel seen. I was honestly so touched, and I still think about it often.",
+    "embarrassed_presentation.wav": "In the middle of my presentation, I suddenly blanked on the client’s name. There was this really awkward silence, and I could feel my face turning red. I laughed it off, but inside I was freaking out.",
+    "dilemma_vacation_choice.wav": "We couldn’t agree on where to go for our vacation—she wanted the beach, I wanted the mountains. I kept changing my mind because I didn’t want to disappoint her. In the end, we compromised, but man, it was so hard to decide.",
+    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could’ve received.",
+    "surprised_friend_visit.wav": "I was just chilling at home when someone rang the doorbell. I opened it and saw my best friend standing there with snacks and a big smile. I was totally shocked—but in the best way possible.",
+    "relieved_after_exam.wav": "As soon as I walked out of the exam room, I let out a huge sigh of relief. It was finally over, and I felt like a huge weight had been lifted off my shoulders. I could finally relax and breathe again.",
+    "proud_first_dinner.wav": "I cooked dinner for my family for the first time, and they loved it. Seeing them smile and enjoy the food made me feel so proud. It wasn’t perfect, but I had really given it my all.",
+    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn’t remember anyone’s name. I was smiling, but deep down I was totally confused and anxious.",
+    "tired_after_overtime.wav": "I finally got home after a long day of overtime. My body felt like it was made of lead, and even brushing my teeth felt like a chore. I collapsed on my bed and passed out instantly.",
+    "tearful_reunion_friend.wav": "When I saw her at the airport after so many years, I couldn’t hold back my tears. We just hugged each other without saying a word. It felt like no time had passed at all.",
     "disappointed_movie_night.wav": "I had been waiting months to watch this movie, and it ended up being such a letdown. The plot made no sense, and the characters were flat. I walked out of the theater feeling so disappointed.",
-    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn't remember anyone's name. I was smiling, but deep down I was totally confused and anxious.",
-    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could've received."
+    "excited_first_date.wav": "The night before our first date, I couldn’t stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
+    "awkward_failed_joke.wav": "I was trying to make a joke, but it totally backfired. Everyone just went quiet, and I wanted to disappear. I smiled awkwardly and changed the subject as fast as I could."
 }
+
 
 # Default fallback prompt if local files not available
 DEFAULT_PROMPT = {
