@@ -229,9 +229,6 @@ def generate_with_gTTS(text, output_path, lang='en'):
     gTTS를 사용하여 텍스트를 음성으로 변환합니다.
     """
     try:
-        # gTTS 사용 - 미국식 영어로 지정 (en-us)
-        print("Google TTS 사용 중 (미국식 영어)...")
-        
         # 한국 및 여러 국가에서 접속 시 사용할 수 있는 TLD 옵션
         tld_options = {
             'us': 'com',        # 미국 서버 (가장 많이 사용)
@@ -241,11 +238,11 @@ def generate_with_gTTS(text, output_path, lang='en'):
             'ca': 'ca',         # 캐나다 서버
         }
         
-        # 기본적으로 미국 서버 사용 (한국에서 접속해도 com 서버가 가장 자연스러운 영어 발음)
-        selected_tld = tld_options['us']
+        # 인도 서버 사용
+        selected_tld = tld_options['in']
         
         # 느린 옵션 사용 안 함 (빠른 음성으로 생성), 미국식 영어(en-us) 지정
-        tts = gTTS(text=text, lang='en', tld=selected_tld, slow=True)  # tld='com'으로 미국 서버 사용
+        tts = gTTS(text=text, lang='en', tld=selected_tld, slow=True)  # tld='co.in'으로 인도 서버 사용
         tts.save(output_path)
         
         # 음량 정규화와 품질 개선을 위한 후처리 (pydub 사용)
@@ -264,7 +261,7 @@ def generate_with_gTTS(text, output_path, lang='en'):
         except Exception as e:
             print(f"오디오 후처리 중 경고: {e} (기본 파일이 사용됩니다)")
         
-        print(f"Generated (gTTS US): {output_path}")
+        print(f"Generated (gTTS IN): {output_path}")
         return True
     except Exception as e:
         print(f"TTS 생성 중 오류: {e}")
