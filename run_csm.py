@@ -75,10 +75,10 @@ VOICE_CLONE_FILES = [
 # These should be replaced with accurate transcripts for each audio file
 VOICE_TRANSCRIPTS = {
     "awkward_failed_joke.wav": "I was trying to make a joke, but it totally backfired. Everyone just went quiet, and I wanted to disappear. I smiled awkwardly and changed the subject as fast as I could.",
-    "excited_first_date.wav": "The night before our first date, I couldn’t stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
+    "excited_first_date.wav": "The night before our first date, I couldn't stop smiling. I kept checking my outfit and replaying our last conversation in my head. I was nervous, but mostly just excited to see him again.",
     "disappointed_movie_night.wav": "I had been waiting months to watch this movie, and it ended up being such a letdown. The plot made no sense, and the characters were flat. I walked out of the theater feeling so disappointed.",
-    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn’t remember anyone’s name. I was smiling, but deep down I was totally confused and anxious.",
-    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could’ve received."
+    "confused_firstday_work.wav": "On my first day at the new job, everything felt overwhelming. I kept getting lost in the building and couldn't remember anyone's name. I was smiling, but deep down I was totally confused and anxious.",
+    "emotional_parents_support.wav": "When I walked on stage and saw my parents in the audience, I almost cried. They had driven hours just to see me speak. That meant more to me than any award I could've received."
 }
 
 # Default fallback prompt if local files not available
@@ -178,34 +178,93 @@ def main():
         print("No voice files found. Using default prompt.")
         source_audio = DEFAULT_PROMPT["filepath"]
         source_transcript = DEFAULT_PROMPT["text"]
+        
+        # 여기에 생성하고 싶은 텍스트를 입력하세요 (Enter the text you want to generate)
+        target_text = "Hello, this is my voice cloned using CSM-1B. I can say anything you want me to say with this same voice. The technology is really impressive."
+        
+        # Clone the voice to generate the target text
+        output_file = clone_voice(
+            source_audio_path=source_audio,
+            source_transcript=source_transcript,
+            target_text=target_text,
+            speaker_id=0,  # Fixed speaker ID for consistency
+            device=device
+        )
+        
+        if IN_COLAB:
+            try:
+                from google.colab import files
+                print("파일 다운로드를 시작합니다... (Starting file download...)")
+                files.download(output_file)
+            except Exception as e:
+                print(f"파일 다운로드 중 오류가 발생했습니다: {e}")
+                print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                print("from google.colab import files")
+                print(f"files.download('{output_file}')")
     else:
-        # Use the first available file for voice cloning
-        source_audio = available_voice_files[0]
-        source_transcript = VOICE_TRANSCRIPTS.get(source_audio, f"This is a transcript for {source_audio}")
-        print(f"Using {source_audio} for voice cloning")
-    
-    # 여기에 생성하고 싶은 텍스트를 입력하세요 (Enter the text you want to generate)
-    target_text = "Hello, this is my voice cloned using CSM-1B. I can say anything you want me to say with this same voice. The technology is really impressive."
-    
-    # Clone the voice to generate the target text
-    output_file = clone_voice(
-        source_audio_path=source_audio,
-        source_transcript=source_transcript,
-        target_text=target_text,
-        speaker_id=0,  # Fixed speaker ID for consistency
-        device=device
-    )
-    
-    if IN_COLAB:
-        try:
-            from google.colab import files
-            print("파일 다운로드를 시작합니다... (Starting file download...)")
-            files.download(output_file)
-        except Exception as e:
-            print(f"파일 다운로드 중 오류가 발생했습니다: {e}")
-            print("다음 코드를 실행하여 파일을 다운로드 하세요:")
-            print("from google.colab import files")
-            print(f"files.download('{output_file}')")
+        # 여기에 생성하고 싶은 텍스트를 입력하세요 (Enter the text you want to generate)
+        target_text = "When my friend told me she got us tickets to the concert, I literally screamed. I had wanted to go for so long, and I never expected her to surprise me like that. It was honestly one of the best moments of my year."
+        
+        # 모든 사용 가능한 WAV 파일에 대해 음성 생성
+        print(f"Found {len(available_voice_files)} voice files. Generating speech for each one.")
+        output_files = []
+        
+        for i, source_audio in enumerate(available_voice_files):
+            source_transcript = VOICE_TRANSCRIPTS.get(source_audio, f"This is a transcript for {source_audio}")
+            print(f"\n[{i+1}/{len(available_voice_files)}] Using {source_audio} for voice cloning")
+            
+            # 파일명에서 확장자 제거
+            filename_base = os.path.splitext(source_audio)[0]
+            custom_output_filename = f"generated_{filename_base}.wav"
+            
+            # Clone the voice to generate the target text
+            generator = load_csm_1b(device)
+            print(f"Model loaded successfully!")
+            
+            # Prepare the prompt segment
+            prompt_segment = prepare_segment(
+                text=source_transcript,
+                speaker=0,  # Fixed speaker ID for consistency
+                audio_path=source_audio,
+                sample_rate=generator.sample_rate
+            )
+            
+            # Generate speech with the target text
+            print(f"Generating speech for: {target_text}")
+            audio_tensor = generator.generate(
+                text=target_text,
+                speaker=0,  # Fixed speaker ID for consistency
+                context=[prompt_segment],
+                max_audio_length_ms=30_000,  # increased for longer texts
+            )
+            
+            # Save the generated audio
+            torchaudio.save(
+                custom_output_filename,
+                audio_tensor.unsqueeze(0).cpu(),
+                generator.sample_rate
+            )
+            print(f"Successfully generated {custom_output_filename}")
+            output_files.append(custom_output_filename)
+        
+        print("\nAll voice cloning complete!")
+        print(f"Generated {len(output_files)} audio files:")
+        for file in output_files:
+            print(f" - {file}")
+        
+        if IN_COLAB:
+            try:
+                from google.colab import files
+                print("\n파일 다운로드를 시작합니다... (Starting file download...)")
+                for file in output_files:
+                    print(f"Downloading {file}...")
+                    files.download(file)
+            except Exception as e:
+                print(f"파일 다운로드 중 오류가 발생했습니다: {e}")
+                print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                print("from google.colab import files")
+                for file in output_files:
+                    print(f"files.download('{file}')")
 
 if __name__ == "__main__":
     main()
