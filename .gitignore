@@ -33,12 +33,7 @@ ENV/
 *.swp
 *.swo
 
-# Project specific
-.python-version
-output_*/
-basic_audio.wav
-full_conversation.wav
-context_audio.wav
+
 
 # Model files
 *.pt
