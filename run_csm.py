@@ -41,7 +41,7 @@ try:
     token_setup = setup_huggingface_token()
     
     # Install required packages if running in Colab
-    subprocess.run(["pip", "install", "-q", "torch==1.13.1", "torchvision==0.14.1", "torchaudio==0.13.1", "huggingface_hub", "transformers==4.26.0", "gtts", "pydub"], check=True)
+    subprocess.run(["pip", "install", "-q", "torch", "torchaudio", "huggingface_hub", "transformers", "gtts", "pydub"], check=True)
     
     # Add current directory to path for imports
     if os.path.exists("generator.py"):
@@ -127,7 +127,8 @@ EMOTION_TO_VOICE_MAP = {
 # 감정 분석 모델 및 토크나이저 (전역 변수)
 emotion_model = None
 emotion_tokenizer = None
-emotion_labels = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
+# 모델에 맞는 감정 레이블 목록
+emotion_labels = None
 
 # Default fallback prompt if local files not available
 DEFAULT_PROMPT = {
@@ -162,13 +163,24 @@ def prepare_segment(text: str, speaker: int, audio_path: str, sample_rate: int) 
 
 def load_emotion_model():
     """감정 분석 모델을 로드합니다"""
-    global emotion_model, emotion_tokenizer
+    global emotion_model, emotion_tokenizer, emotion_labels
     
     if emotion_model is None or emotion_tokenizer is None:
         print("감정 분석 모델 로드 중...")
         model_name = "j-hartmann/emotion-english-distilroberta-base"
         emotion_tokenizer = AutoTokenizer.from_pretrained(model_name)
         emotion_model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        
+        # 레이블 설정
+        id2label = emotion_model.config.id2label
+        if id2label:
+            emotion_labels = [id2label[i] for i in range(len(id2label))]
+        else:
+            # 기본 레이블 (fallback)
+            emotion_labels = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
+        
+        # 레이블 출력
+        print(f"감정 레이블: {emotion_labels}")
         
         # GPU 사용 가능하면 GPU로 이동
         if torch.cuda.is_available():
@@ -198,7 +210,14 @@ def analyze_emotion(text):
     
     # 가장 높은 확률의 감정 찾기
     predicted_class_id = probabilities.argmax().item()
-    predicted_label = emotion_labels[predicted_class_id]
+    
+    # 결과 출력
+    if predicted_class_id < len(emotion_labels):
+        predicted_label = emotion_labels[predicted_class_id]
+    else:
+        # 인덱스 범위를 벗어나면 중립으로 기본 설정
+        print(f"경고: 예측된 클래스 ID({predicted_class_id})가 레이블 범위를 벗어났습니다")
+        predicted_label = "neutral"
     
     return predicted_label
 
