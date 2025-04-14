@@ -9,4 +9,6 @@ python-multipart>=0.0.6
 # run_csm.py에서 필요한 패키지 추가
 huggingface_hub>=0.15.1
 gtts>=2.3.2
-pydub>=0.25.1 
+pydub>=0.25.1
+# CSM 내부 의존성
+torchtune>=0.4.0 # CSM 저장소 확인 후 적절한 버전 명시 권장 
