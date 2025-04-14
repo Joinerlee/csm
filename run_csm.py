@@ -203,9 +203,15 @@ def main():
     )
     
     if IN_COLAB:
-        from google.colab import files
-        print("파일 다운로드를 시작합니다... (Starting file download...)")
-        files.download(output_file)
+        try:
+            from google.colab import files
+            print("파일 다운로드를 시작합니다... (Starting file download...)")
+            files.download(output_file)
+        except Exception as e:
+            print(f"파일 다운로드 중 오류가 발생했습니다: {e}")
+            print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+            print("from google.colab import files")
+            print(f"files.download('{output_file}')")
 
 if __name__ == "__main__":
     main()
