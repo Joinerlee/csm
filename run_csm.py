@@ -5,7 +5,8 @@ from huggingface_hub import hf_hub_download, login
 import sys
 import random
 import subprocess
-from transformers import pipeline
+# 직접 모델과 토크나이저 가져오기
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import re
 from gtts import gTTS
 from IPython.display import Audio, display
@@ -40,7 +41,7 @@ try:
     token_setup = setup_huggingface_token()
     
     # Install required packages if running in Colab
-    subprocess.run(["pip", "install", "-q", "torch", "torchaudio", "huggingface_hub", "transformers", "gtts", "pydub"], check=True)
+    subprocess.run(["pip", "install", "-q", "torch==1.13.1", "torchvision==0.14.1", "torchaudio==0.13.1", "huggingface_hub", "transformers==4.26.0", "gtts", "pydub"], check=True)
     
     # Add current directory to path for imports
     if os.path.exists("generator.py"):
@@ -123,6 +124,11 @@ EMOTION_TO_VOICE_MAP = {
     "love": ["touched_by_friend.wav", "emotional_parents_support.wav"]
 }
 
+# 감정 분석 모델 및 토크나이저 (전역 변수)
+emotion_model = None
+emotion_tokenizer = None
+emotion_labels = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
+
 # Default fallback prompt if local files not available
 DEFAULT_PROMPT = {
     "filepath": hf_hub_download(
@@ -154,18 +160,47 @@ def prepare_segment(text: str, speaker: int, audio_path: str, sample_rate: int) 
     audio_tensor = load_audio(audio_path, sample_rate)
     return Segment(text=text, speaker=speaker, audio=audio_tensor)
 
+def load_emotion_model():
+    """감정 분석 모델을 로드합니다"""
+    global emotion_model, emotion_tokenizer
+    
+    if emotion_model is None or emotion_tokenizer is None:
+        print("감정 분석 모델 로드 중...")
+        model_name = "j-hartmann/emotion-english-distilroberta-base"
+        emotion_tokenizer = AutoTokenizer.from_pretrained(model_name)
+        emotion_model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        
+        # GPU 사용 가능하면 GPU로 이동
+        if torch.cuda.is_available():
+            emotion_model = emotion_model.to("cuda")
+        
+        emotion_model.eval()
+        print("감정 분석 모델 로드 완료!")
+
 def analyze_emotion(text):
     """
     텍스트의 감정을 분석합니다.
     """
-    # 감정 분석 모델 로드
-    emotion_analyzer = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base")
+    load_emotion_model()
     
-    # 감정 분석 수행
-    result = emotion_analyzer(text)
+    # 텍스트 토큰화
+    inputs = emotion_tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     
-    # 결과 반환
-    return result[0]["label"]
+    # GPU 사용 가능하면 입력을 GPU로 이동
+    if torch.cuda.is_available():
+        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    
+    # 추론
+    with torch.no_grad():
+        outputs = emotion_model(**inputs)
+        logits = outputs.logits
+        probabilities = torch.nn.functional.softmax(logits, dim=1)
+    
+    # 가장 높은 확률의 감정 찾기
+    predicted_class_id = probabilities.argmax().item()
+    predicted_label = emotion_labels[predicted_class_id]
+    
+    return predicted_label
 
 def split_text_to_sentences(text):
     """
