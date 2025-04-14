@@ -229,6 +229,62 @@ def generate_with_gTTS(text, output_path, lang='en'):
     gTTS를 사용하여 텍스트를 음성으로 변환합니다.
     """
     try:
+        # Edge TTS 사용 시도 (더 다양한 목소리 제공)
+        try:
+            import edge_tts
+            import asyncio
+            
+            async def generate_with_edge_tts():
+                # 가능한 음성 목록 (영어)
+                voices = [
+                    "en-US-AriaNeural",  # 여성 목소리
+                    "en-US-GuyNeural",   # 남성 목소리
+                    "en-US-JennyNeural", # 여성 목소리 (기본)
+                    "en-GB-SoniaNeural", # 영국 억양 여성
+                    "en-GB-RyanNeural",  # 영국 억양 남성
+                ]
+                
+                # 일관성을 위해 항상 같은 목소리 사용
+                voice = voices[2]  # 기본 JennyNeural 사용
+                
+                # 음성 생성
+                communicate = edge_tts.Communicate(text, voice)
+                await communicate.save(output_path)
+                print(f"Generated (Edge TTS): {output_path}")
+                return True
+            
+            # Edge TTS 비동기 실행
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            success = loop.run_until_complete(generate_with_edge_tts())
+            loop.close()
+            
+            # Edge TTS 변환이 성공하면 후처리 진행
+            if success:
+                try:
+                    from pydub import AudioSegment
+                    from pydub.effects import normalize
+                    
+                    # 파일 불러오기
+                    audio = AudioSegment.from_file(output_path)
+                    
+                    # 음량 정규화 (더 일관된 음량)
+                    audio = normalize(audio)
+                    
+                    # 저장
+                    audio.export(output_path, format="wav")
+                except Exception as e:
+                    print(f"오디오 후처리 중 경고: {e}")
+                
+                return True
+            
+        except ImportError:
+            print("Edge TTS를 사용할 수 없습니다. gTTS로 대체합니다.")
+            pass
+        
+        # Edge TTS 사용 실패 시 gTTS 사용
+        print("Google TTS 사용 중...")
+        
         # 느린 옵션 사용 안 함 (빠른 음성으로 생성)
         tts = gTTS(text=text, lang=lang, slow=False)
         tts.save(output_path)
@@ -252,7 +308,7 @@ def generate_with_gTTS(text, output_path, lang='en'):
         print(f"Generated (gTTS): {output_path}")
         return True
     except Exception as e:
-        print(f"Error generating speech with gTTS: {e}")
+        print(f"TTS 생성 중 오류: {e}")
         return False
 
 def generate_with_CSM(text, emotion, available_files, device):
@@ -358,6 +414,13 @@ def main():
     except ImportError:
         print("Installing gTTS...")
         subprocess.run(["pip", "install", "gtts"], check=True)
+    
+    # Edge TTS 설치 시도
+    try:
+        import edge_tts
+    except ImportError:
+        print("Installing Edge TTS for better voice quality...")
+        subprocess.run(["pip", "install", "edge-tts"], check=True)
     
     # Select the best available device
     if torch.backends.mps.is_available():
