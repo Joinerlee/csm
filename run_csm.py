@@ -125,13 +125,13 @@ EMOTION_TO_VOICE_MAP = {
 
 # 감정 키워드 사전
 EMOTION_KEYWORDS = {
-    "joy": ["happy", "joy", "excited", "delighted", "thrilled", "amazing", "wonderful", "favorite", "love", "great", "beautiful", "enjoy", "fun"],
-    "sadness": ["sad", "unhappy", "depressed", "disappointed", "miss", "lost", "alone", "lonely", "sorry", "regret"],
-    "anger": ["angry", "mad", "furious", "annoyed", "irritated", "frustrated", "hate", "terrible", "awful"],
-    "fear": ["scared", "afraid", "nervous", "worried", "anxious", "frightened", "terrified"],
-    "surprise": ["surprised", "shocked", "amazed", "astonished", "unexpected", "suddenly", "wow", "interesting", "interestingly"],
-    "disgust": ["disgusted", "gross", "revolting", "nasty", "horrible", "dirty"],
-    "love": ["love", "adore", "cherish", "beloved", "dear", "precious"]
+    "joy": ["happy", "joy", "excited", "delighted", "thrilled", "amazing", "wonderful", "favorite", "love", "great", "beautiful", "enjoy", "fun", "lovely", "pleasant", "pleased", "glad", "awesome", "excellent", "fabulous", "fantastic", "perfect", "pretty"],
+    "sadness": ["sad", "unhappy", "depressed", "disappointed", "miss", "lost", "alone", "lonely", "sorry", "regret", "upset", "unfortunate", "hurt", "heartbroken", "devastating", "gloomy", "miserable", "hopeless"],
+    "anger": ["angry", "mad", "furious", "annoyed", "irritated", "frustrated", "hate", "terrible", "awful", "horrible", "rage", "outraged", "insulted", "offended", "fed up"],
+    "fear": ["scared", "afraid", "nervous", "worried", "anxious", "frightened", "terrified", "panic", "dread", "horrified", "alarmed", "uneasy", "uncomfortable", "stressed"],
+    "surprise": ["surprised", "shocked", "amazed", "astonished", "unexpected", "suddenly", "wow", "interesting", "interestingly", "incredible", "unbelievable", "remarkable", "extraordinary"],
+    "disgust": ["disgusted", "gross", "revolting", "nasty", "horrible", "dirty", "unpleasant", "repulsive", "offensive", "sickening"],
+    "love": ["love", "adore", "cherish", "beloved", "dear", "precious", "affection", "caring", "tender", "devoted", "fond", "passion", "treasure", "special"]
 }
 
 # Default fallback prompt if local files not available
@@ -229,8 +229,26 @@ def generate_with_gTTS(text, output_path, lang='en'):
     gTTS를 사용하여 텍스트를 음성으로 변환합니다.
     """
     try:
+        # 느린 옵션 사용 안 함 (빠른 음성으로 생성)
         tts = gTTS(text=text, lang=lang, slow=False)
         tts.save(output_path)
+        
+        # 음량 정규화와 품질 개선을 위한 후처리 (pydub 사용)
+        try:
+            from pydub import AudioSegment
+            from pydub.effects import normalize
+            
+            # 파일 불러오기
+            audio = AudioSegment.from_file(output_path)
+            
+            # 음량 정규화 (더 일관된 음량)
+            audio = normalize(audio)
+            
+            # 저장
+            audio.export(output_path, format="wav")
+        except Exception as e:
+            print(f"오디오 후처리 중 경고: {e} (기본 파일이 사용됩니다)")
+        
         print(f"Generated (gTTS): {output_path}")
         return True
     except Exception as e:
@@ -297,20 +315,34 @@ def merge_audio_files(audio_files, output_file):
         from pydub import AudioSegment
         
         # 첫 번째 파일 로드
-        combined = AudioSegment.from_wav(audio_files[0])
+        try:
+            combined = AudioSegment.from_file(audio_files[0], format="wav")
+        except Exception as e:
+            print(f"첫 번째 파일 로드 중 오류 발생: {e}")
+            print(f"개별 파일만 사용합니다.")
+            return None
         
         # 나머지 파일 추가
         for audio_file in audio_files[1:]:
-            audio = AudioSegment.from_wav(audio_file)
-            combined += audio
+            try:
+                audio = AudioSegment.from_file(audio_file, format="wav")
+                combined += audio
+            except Exception as e:
+                print(f"파일 '{audio_file}' 병합 중 오류 발생: {e}")
+                print(f"이 파일은 건너뜁니다.")
+                continue
         
         # 결과 저장
-        combined.export(output_file, format="wav")
-        print(f"Merged audio saved to: {output_file}")
-        return output_file
+        try:
+            combined.export(output_file, format="wav")
+            print(f"병합된 오디오가 저장되었습니다: {output_file}")
+            return output_file
+        except Exception as e:
+            print(f"파일 저장 중 오류: {e}")
+            return None
     
     except Exception as e:
-        print(f"Error merging audio files: {e}")
+        print(f"오디오 파일 병합 중 오류: {e}")
         return None
 
 def main():
@@ -370,18 +402,63 @@ def main():
         # 모든 파일 병합
         if len(output_files) > 1:
             final_output = "final_output.wav"
-            merge_audio_files(output_files, final_output)
-        else:
+            merged_file = merge_audio_files(output_files, final_output)
+            if merged_file:
+                print("\n음성 생성 및 병합 완료!")
+                print(f"최종 파일: {final_output}")
+                
+                # Colab에서 다운로드
+                if IN_COLAB:
+                    try:
+                        from google.colab import files
+                        print("\n파일 다운로드를 시작합니다...")
+                        print(f"병합된 파일 다운로드: {final_output}")
+                        files.download(final_output)
+                        
+                        # 각 문장별 파일도 제공
+                        print("\n각 문장별 파일도 다운로드할 수 있습니다:")
+                        for file in output_files:
+                            print(f"- {file}")
+                    except Exception as e:
+                        print(f"파일 다운로드 중 오류: {e}")
+                        print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                        print("from google.colab import files")
+                        print(f"files.download('{final_output}')")
+            else:
+                print("\n파일 병합에 실패했습니다. 개별 파일을 다운로드해주세요.")
+                # 개별 파일 다운로드
+                if IN_COLAB:
+                    try:
+                        from google.colab import files
+                        print("\n개별 파일 다운로드:")
+                        for file in output_files:
+                            print(f"다운로드 중: {file}")
+                            files.download(file)
+                    except Exception as e:
+                        print(f"파일 다운로드 중 오류: {e}")
+                        print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                        print("from google.colab import files")
+                        for file in output_files:
+                            print(f"files.download('{file}')")
+        elif len(output_files) == 1:
             final_output = output_files[0]
-        
-        # Colab에서 다운로드
-        if IN_COLAB:
-            try:
-                from google.colab import files
-                print("파일 다운로드를 시작합니다...")
-                files.download(final_output)
-            except Exception as e:
-                print(f"파일 다운로드 중 오류: {e}")
+            print("\n음성 생성 완료!")
+            print(f"최종 파일: {final_output}")
+            
+            # Colab에서 다운로드
+            if IN_COLAB:
+                try:
+                    from google.colab import files
+                    print("\n파일 다운로드를 시작합니다...")
+                    files.download(final_output)
+                except Exception as e:
+                    print(f"파일 다운로드 중 오류: {e}")
+                    print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                    print("from google.colab import files")
+                    print(f"files.download('{final_output}')")
+        else:
+            print("생성된 오디오 파일이 없습니다.")
+            return
     else:
         # 여기에 생성하고 싶은 텍스트를 입력하세요
         target_text = input("생성할 텍스트를 입력하세요: ")
@@ -425,32 +502,63 @@ def main():
         # 모든 파일 병합
         if len(output_files) > 1:
             final_output = "final_output.wav"
-            merge_audio_files(output_files, final_output)
+            merged_file = merge_audio_files(output_files, final_output)
+            if merged_file:
+                print("\n음성 생성 및 병합 완료!")
+                print(f"최종 파일: {final_output}")
+                
+                # Colab에서 다운로드
+                if IN_COLAB:
+                    try:
+                        from google.colab import files
+                        print("\n파일 다운로드를 시작합니다...")
+                        print(f"병합된 파일 다운로드: {final_output}")
+                        files.download(final_output)
+                        
+                        # 각 문장별 파일도 제공
+                        print("\n각 문장별 파일도 다운로드할 수 있습니다:")
+                        for file in output_files:
+                            print(f"- {file}")
+                    except Exception as e:
+                        print(f"파일 다운로드 중 오류: {e}")
+                        print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                        print("from google.colab import files")
+                        print(f"files.download('{final_output}')")
+            else:
+                print("\n파일 병합에 실패했습니다. 개별 파일을 다운로드해주세요.")
+                # 개별 파일 다운로드
+                if IN_COLAB:
+                    try:
+                        from google.colab import files
+                        print("\n개별 파일 다운로드:")
+                        for file in output_files:
+                            print(f"다운로드 중: {file}")
+                            files.download(file)
+                    except Exception as e:
+                        print(f"파일 다운로드 중 오류: {e}")
+                        print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                        print("from google.colab import files")
+                        for file in output_files:
+                            print(f"files.download('{file}')")
         elif len(output_files) == 1:
             final_output = output_files[0]
+            print("\n음성 생성 완료!")
+            print(f"최종 파일: {final_output}")
+            
+            # Colab에서 다운로드
+            if IN_COLAB:
+                try:
+                    from google.colab import files
+                    print("\n파일 다운로드를 시작합니다...")
+                    files.download(final_output)
+                except Exception as e:
+                    print(f"파일 다운로드 중 오류: {e}")
+                    print("다음 코드를 실행하여 파일을 다운로드 하세요:")
+                    print("from google.colab import files")
+                    print(f"files.download('{final_output}')")
         else:
             print("생성된 오디오 파일이 없습니다.")
             return
-        
-        print("\n음성 생성 완료!")
-        print(f"최종 파일: {final_output}")
-        
-        # Colab에서 다운로드
-        if IN_COLAB:
-            try:
-                from google.colab import files
-                print("\n파일 다운로드를 시작합니다...")
-                files.download(final_output)
-                
-                # 각 문장별 파일도 제공
-                for file in output_files:
-                    if file != final_output:
-                        files.download(file)
-            except Exception as e:
-                print(f"파일 다운로드 중 오류: {e}")
-                print("다음 코드를 실행하여 파일을 다운로드 하세요:")
-                print("from google.colab import files")
-                print(f"files.download('{final_output}')")
 
 if __name__ == "__main__":
     main()
