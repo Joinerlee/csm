@@ -406,12 +406,8 @@ def main():
             # 감정 분석
             emotion, max_score = analyze_emotion(sentence)
             
-            # 중립 감정이면 gTTS 사용, 아니면 CSM 사용
-            if emotion == "neutral" and max_score == 0:  # 감정 점수가 0일 때만 중립으로 처리
-                output_path = f"sentence_{i}_neutral.wav"
-                generate_with_gTTS(sentence, output_path)
-                output_files.append(output_path)
-            else:
+            # 감정 점수가 2점 이상일 때만 CSM 사용, 그 외에는 gTTS 사용
+            if max_score >= 2:
                 output_path = generate_with_CSM(sentence, emotion, available_voice_files, device)
                 if output_path:
                     output_files.append(output_path)
@@ -420,6 +416,11 @@ def main():
                     output_path = f"sentence_{i}_fallback.wav"
                     generate_with_gTTS(sentence, output_path)
                     output_files.append(output_path)
+            else:
+                # 감정 점수가 1점 이하이면 gTTS 사용
+                output_path = f"sentence_{i}_neutral.wav"
+                generate_with_gTTS(sentence, output_path)
+                output_files.append(output_path)
         
         # 모든 파일 병합
         if len(output_files) > 1:
