@@ -5,8 +5,7 @@ from huggingface_hub import hf_hub_download, login
 import sys
 import random
 import subprocess
-# 직접 모델과 토크나이저 가져오기
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+# 직접 모델 사용하지 않도록 변경
 import re
 from gtts import gTTS
 from IPython.display import Audio, display
@@ -41,7 +40,7 @@ try:
     token_setup = setup_huggingface_token()
     
     # Install required packages if running in Colab
-    subprocess.run(["pip", "install", "-q", "torch", "torchaudio", "huggingface_hub", "transformers", "gtts", "pydub"], check=True)
+    subprocess.run(["pip", "install", "-q", "torch", "torchaudio", "huggingface_hub", "gtts", "pydub"], check=True)
     
     # Add current directory to path for imports
     if os.path.exists("generator.py"):
@@ -124,11 +123,16 @@ EMOTION_TO_VOICE_MAP = {
     "love": ["touched_by_friend.wav", "emotional_parents_support.wav"]
 }
 
-# 감정 분석 모델 및 토크나이저 (전역 변수)
-emotion_model = None
-emotion_tokenizer = None
-# 모델에 맞는 감정 레이블 목록
-emotion_labels = None
+# 감정 키워드 사전
+EMOTION_KEYWORDS = {
+    "joy": ["happy", "joy", "excited", "delighted", "thrilled", "amazing", "wonderful", "favorite", "love", "great", "beautiful", "enjoy", "fun"],
+    "sadness": ["sad", "unhappy", "depressed", "disappointed", "miss", "lost", "alone", "lonely", "sorry", "regret"],
+    "anger": ["angry", "mad", "furious", "annoyed", "irritated", "frustrated", "hate", "terrible", "awful"],
+    "fear": ["scared", "afraid", "nervous", "worried", "anxious", "frightened", "terrified"],
+    "surprise": ["surprised", "shocked", "amazed", "astonished", "unexpected", "suddenly", "wow", "interesting", "interestingly"],
+    "disgust": ["disgusted", "gross", "revolting", "nasty", "horrible", "dirty"],
+    "love": ["love", "adore", "cherish", "beloved", "dear", "precious"]
+}
 
 # Default fallback prompt if local files not available
 DEFAULT_PROMPT = {
@@ -161,65 +165,30 @@ def prepare_segment(text: str, speaker: int, audio_path: str, sample_rate: int) 
     audio_tensor = load_audio(audio_path, sample_rate)
     return Segment(text=text, speaker=speaker, audio=audio_tensor)
 
-def load_emotion_model():
-    """감정 분석 모델을 로드합니다"""
-    global emotion_model, emotion_tokenizer, emotion_labels
-    
-    if emotion_model is None or emotion_tokenizer is None:
-        print("감정 분석 모델 로드 중...")
-        model_name = "j-hartmann/emotion-english-distilroberta-base"
-        emotion_tokenizer = AutoTokenizer.from_pretrained(model_name)
-        emotion_model = AutoModelForSequenceClassification.from_pretrained(model_name)
-        
-        # 레이블 설정
-        id2label = emotion_model.config.id2label
-        if id2label:
-            emotion_labels = [id2label[i] for i in range(len(id2label))]
-        else:
-            # 기본 레이블 (fallback)
-            emotion_labels = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
-        
-        # 레이블 출력
-        print(f"감정 레이블: {emotion_labels}")
-        
-        # GPU 사용 가능하면 GPU로 이동
-        if torch.cuda.is_available():
-            emotion_model = emotion_model.to("cuda")
-        
-        emotion_model.eval()
-        print("감정 분석 모델 로드 완료!")
-
 def analyze_emotion(text):
     """
-    텍스트의 감정을 분석합니다.
+    텍스트의 감정을 간단한 키워드 기반으로 분석합니다.
     """
-    load_emotion_model()
+    text = text.lower()
+    emotion_scores = {emotion: 0 for emotion in EMOTION_KEYWORDS}
     
-    # 텍스트 토큰화
-    inputs = emotion_tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    # 각 감정별 키워드 점수 계산
+    for emotion, keywords in EMOTION_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in text:
+                emotion_scores[emotion] += 1
     
-    # GPU 사용 가능하면 입력을 GPU로 이동
-    if torch.cuda.is_available():
-        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+    # 가장 높은 점수의 감정 선택
+    max_score = 0
+    selected_emotion = "neutral"  # 기본값
     
-    # 추론
-    with torch.no_grad():
-        outputs = emotion_model(**inputs)
-        logits = outputs.logits
-        probabilities = torch.nn.functional.softmax(logits, dim=1)
+    for emotion, score in emotion_scores.items():
+        if score > max_score:
+            max_score = score
+            selected_emotion = emotion
     
-    # 가장 높은 확률의 감정 찾기
-    predicted_class_id = probabilities.argmax().item()
-    
-    # 결과 출력
-    if predicted_class_id < len(emotion_labels):
-        predicted_label = emotion_labels[predicted_class_id]
-    else:
-        # 인덱스 범위를 벗어나면 중립으로 기본 설정
-        print(f"경고: 예측된 클래스 ID({predicted_class_id})가 레이블 범위를 벗어났습니다")
-        predicted_label = "neutral"
-    
-    return predicted_label
+    print(f"감정 분석 결과: {selected_emotion} (점수: {max_score})")
+    return selected_emotion, max_score
 
 def split_text_to_sentences(text):
     """
@@ -435,11 +404,10 @@ def main():
             print(f"\n[{i+1}/{len(sentences)}] 문장: '{sentence}'")
             
             # 감정 분석
-            emotion = analyze_emotion(sentence)
-            print(f"감정: {emotion}")
+            emotion, max_score = analyze_emotion(sentence)
             
             # 중립 감정이면 gTTS 사용, 아니면 CSM 사용
-            if emotion == "neutral":
+            if emotion == "neutral" and max_score == 0:  # 감정 점수가 0일 때만 중립으로 처리
                 output_path = f"sentence_{i}_neutral.wav"
                 generate_with_gTTS(sentence, output_path)
                 output_files.append(output_path)
