@@ -472,6 +472,45 @@ def main():
         
         print(f"\n문장을 {len(sentences)}개로 분리했습니다.")
         
+        # 각 감정별로 사용할 음성 파일을 미리 선택 (고정)
+        emotion_to_voice_file = {}
+        for emotion in EMOTION_TO_VOICE_MAP:
+            matching_files = find_matching_voice_files(emotion, available_voice_files)
+            if matching_files:
+                # 랜덤으로 선택하지만 한 번 선택하면 고정
+                emotion_to_voice_file[emotion] = matching_files[0]
+        
+        # CSM 모델을 한 번만 로드 (재사용)
+        print(f"CSM-1B 모델 로드 중...")
+        generator = load_csm_1b(device)
+        print(f"모델 로드 완료!")
+        
+        # 각 프롬프트 세그먼트를 미리 준비
+        emotion_to_prompt = {}
+        for emotion, voice_file in emotion_to_voice_file.items():
+            transcript = VOICE_TRANSCRIPTS.get(voice_file, f"This is a transcript for {voice_file}")
+            prompt_segment = prepare_segment(
+                text=transcript,
+                speaker=0,
+                audio_path=voice_file,
+                sample_rate=generator.sample_rate
+            )
+            emotion_to_prompt[emotion] = prompt_segment
+            print(f"'{emotion}' 감정용 프롬프트 준비 완료: {voice_file}")
+        
+        # 중립 감정의 기본 프롬프트 준비
+        if "neutral" not in emotion_to_prompt and available_voice_files:
+            neutral_file = random.choice(available_voice_files)
+            transcript = VOICE_TRANSCRIPTS.get(neutral_file, f"This is a transcript for {neutral_file}")
+            prompt_segment = prepare_segment(
+                text=transcript,
+                speaker=0,
+                audio_path=neutral_file,
+                sample_rate=generator.sample_rate
+            )
+            emotion_to_prompt["neutral"] = prompt_segment
+            print(f"'neutral' 감정용 프롬프트 준비 완료: {neutral_file}")
+        
         # 각 문장별로 감정 분석 및 음성 생성
         output_files = []
         for i, sentence in enumerate(sentences):
@@ -484,11 +523,31 @@ def main():
             emotion, max_score = analyze_emotion(sentence)
             
             # 감정 점수가 2점 이상일 때만 CSM 사용, 그 외에는 gTTS 사용
-            if max_score >= 2:
-                output_path = generate_with_CSM(sentence, emotion, available_voice_files, device)
-                if output_path:
+            if max_score >= 2 and emotion in emotion_to_prompt:
+                # 이미 준비된 프롬프트 사용
+                prompt_segment = emotion_to_prompt[emotion]
+                
+                # 음성 생성
+                print(f"CSM으로 '{emotion}' 감정 음성 생성 중...")
+                try:
+                    audio_tensor = generator.generate(
+                        text=sentence,
+                        speaker=0,
+                        context=[prompt_segment],
+                        max_audio_length_ms=30_000,
+                    )
+                    
+                    # 생성된 오디오 저장
+                    output_path = f"sentence_{i}_{emotion}.wav"
+                    torchaudio.save(
+                        output_path,
+                        audio_tensor.unsqueeze(0).cpu(),
+                        generator.sample_rate
+                    )
+                    print(f"Generated (CSM): {output_path}")
                     output_files.append(output_path)
-                else:
+                except Exception as e:
+                    print(f"CSM 음성 생성 실패: {e}")
                     # CSM 실패시 gTTS로 대체
                     output_path = f"sentence_{i}_fallback.wav"
                     generate_with_gTTS(sentence, output_path)
