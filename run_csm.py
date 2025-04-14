@@ -236,13 +236,14 @@ def generate_with_gTTS(text, output_path, lang='en'):
             'au': 'com.au',     # 호주 서버
             'in': 'co.in',      # 인도 서버
             'ca': 'ca',         # 캐나다 서버
+            'kr': 'co.kr',      # 한국 서버
         }
         
-        # 인도 서버 사용
-        selected_tld = tld_options['in']
+        # 한국 서버 사용
+        selected_tld = tld_options['kr']
         
-        # 느린 옵션 사용 안 함 (빠른 음성으로 생성), 미국식 영어(en-us) 지정
-        tts = gTTS(text=text, lang='en', tld=selected_tld, slow=True)  # tld='co.in'으로 인도 서버 사용
+        # 느린 옵션 사용 안 함 (빠른 음성으로 생성)
+        tts = gTTS(text=text, lang='en', tld=selected_tld, slow=False)  # tld='co.kr'으로 한국 서버 사용, 한국어 설정
         tts.save(output_path)
         
         # 음량 정규화와 품질 개선을 위한 후처리 (pydub 사용)
@@ -261,7 +262,7 @@ def generate_with_gTTS(text, output_path, lang='en'):
         except Exception as e:
             print(f"오디오 후처리 중 경고: {e} (기본 파일이 사용됩니다)")
         
-        print(f"Generated (gTTS IN): {output_path}")
+        print(f"Generated (gTTS KR): {output_path}")
         return True
     except Exception as e:
         print(f"TTS 생성 중 오류: {e}")
