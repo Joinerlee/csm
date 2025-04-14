@@ -13,4 +13,5 @@ pydub>=0.25.1
 # CSM 내부 의존성
 torchtune==0.4.0 # CSM 저장소에서 요구하는 버전으로 고정
 moshi==0.2.2 # generator.py 에서 필요
-transformers>=4.30.0 # generator.py 에서 필요 
+transformers>=4.30.0 # generator.py 에서 필요
+silentcipher @ git+https://github.com/SesameAILabs/silentcipher@master # watermarking.py 에서 필요 
