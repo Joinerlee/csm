@@ -232,8 +232,20 @@ def generate_with_gTTS(text, output_path, lang='en'):
         # gTTS 사용 - 미국식 영어로 지정 (en-us)
         print("Google TTS 사용 중 (미국식 영어)...")
         
+        # 한국 및 여러 국가에서 접속 시 사용할 수 있는 TLD 옵션
+        tld_options = {
+            'us': 'com',        # 미국 서버 (가장 많이 사용)
+            'uk': 'co.uk',      # 영국 서버 (영국식 발음)
+            'au': 'com.au',     # 호주 서버
+            'in': 'co.in',      # 인도 서버
+            'ca': 'ca',         # 캐나다 서버
+        }
+        
+        # 기본적으로 미국 서버 사용 (한국에서 접속해도 com 서버가 가장 자연스러운 영어 발음)
+        selected_tld = tld_options['us']
+        
         # 느린 옵션 사용 안 함 (빠른 음성으로 생성), 미국식 영어(en-us) 지정
-        tts = gTTS(text=text, lang='en', tld='com', slow=False)  # tld='com'으로 미국 서버 사용
+        tts = gTTS(text=text, lang='en', tld=selected_tld, slow=True)  # tld='com'으로 미국 서버 사용
         tts.save(output_path)
         
         # 음량 정규화와 품질 개선을 위한 후처리 (pydub 사용)
